@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tag Tracker</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/static/manifest.json">
+    
+    <!-- App Icons -->
+    <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
+    <link rel="apple-touch-icon" href="/static/icon.svg">
+    
+    <!-- Theme Colors -->
+    <meta name="theme-color" content="#081a35">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Tag Tracker">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f2ec;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .header {
+            background: #081a35;
+            padding: 30px 20px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            margin: 0;
+            font-size: 32px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: white;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+        
+        .camera-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        #video {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 10px;
+            display: block;
+            margin: 20px auto;
+        }
+        
+        #canvas {
+            display: none;
+        }
+        
+        #preview {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 10px;
+            display: none;
+            margin: 20px auto;
+        }
+        
+        button {
+            background: #e63946;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #d62828;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .results {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        
+        .edit-section {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border: 2px solid #e63946;
+        }
+        
+        .edit-section h3 {
+            color: #e63946;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #e63946;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            font-family: monospace;
+        }
+        
+        .date-info {
+            background: #e8f5e9;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #2e7d32;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #e63946;
+            margin: 20px 0;
+        }
+        
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .button-group {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .tracker-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #e63946;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        
+        .tracker-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏷️ Tag Tracker</h1>
+        <p class="subtitle">Scan and track clothing tags</p>
+    </div>
+    
+    <div class="container">
+        <div class="camera-section">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+            <img id="preview" alt="Preview">
+            
+            <div class="button-group" id="cameraControls">
+                <button id="capture">Take Photo</button>
+                <button id="retake" class="hidden">Retake</button>
+                <button id="process" class="hidden">Process Tag</button>
+            </div>
+        </div>
+        
+        <div id="loading" class="loading hidden">
+            Processing your tag...
+        </div>
+        
+        <div id="results" class="results hidden"></div>
+        
+        <div id="editSection" class="edit-section hidden">
+            <h3>Review & Edit</h3>
+            <div class="form-group">
+                <label for="styleNumber">Style Number:</label>
+                <input type="text" id="styleNumber" placeholder="Enter style number">
+            </div>
+            <div class="form-group">
+                <label for="description">Description:</label>
+                <input type="text" id="description" placeholder="Enter description">
+            </div>
+            <div class="form-group">
+                <label for="poNumber">PO Number:</label>
+                <input type="text" id="poNumber" placeholder="Enter PO number">
+            </div>
+            <div class="form-group">
+                <label for="scanDate">Scan Date:</label>
+                <input type="date" id="scanDate">
+                <div class="date-info" id="returnDateInfo"></div>
+            </div>
+        </div>
+        
+        <div id="saveSection" class="hidden">
+            <button id="saveToTracker">💾 Save to Tracker</button>
+            <button id="newTag">📸 Scan Another Tag</button>
+        </div>
+        
+        <a href="/tracker" class="tracker-link">📋 View Tag Tracker</a>
+    </div>
+    
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const preview = document.getElementById('preview');
+        const captureBtn = document.getElementById('capture');
+        const retakeBtn = document.getElementById('retake');
+        const processBtn = document.getElementById('process');
+        const cameraControls = document.getElementById('cameraControls');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const saveSection = document.getElementById('saveSection');
+        const saveToTrackerBtn = document.getElementById('saveToTracker');
+        const newTagBtn = document.getElementById('newTag');
+        const scanDateInput = document.getElementById('scanDate');
+        const returnDateInfo = document.getElementById('returnDateInfo');
+        
+        let stream = null;
+        let capturedImageData = null;
+        let processedData = null;
+        
+        // Auto-start camera on page load
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } 
+                });
+                video.srcObject = stream;
+                video.style.display = 'block';
+            } catch (err) {
+                alert('Error accessing camera: ' + err.message + '\n\nPlease allow camera access in your browser settings.');
+            }
+        }
+        
+        // Start camera immediately when page loads
+        window.addEventListener('load', startCamera);
+        
+        // Set today's date as default scan date
+        const today = new Date().toISOString().split('T')[0];
+        scanDateInput.value = today;
+        updateReturnDate();
+        
+        // Update return date when scan date changes
+        scanDateInput.addEventListener('change', updateReturnDate);
+        
+        function updateReturnDate() {
+            const scanDate = new Date(scanDateInput.value);
+            const returnDate = new Date(scanDate);
+            returnDate.setDate(returnDate.getDate() + 30);
+            
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            returnDateInfo.textContent = `Return Date: ${returnDate.toLocaleDateString('en-US', options)}`;
+        }
+        
+        // Capture photo
+        captureBtn.addEventListener('click', () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            capturedImageData = canvas.toDataURL('image/jpeg');
+            preview.src = capturedImageData;
+            preview.style.display = 'block';
+            video.style.display = 'none';
+            
+            captureBtn.classList.add('hidden');
+            retakeBtn.classList.remove('hidden');
+            processBtn.classList.remove('hidden');
+        });
+        
+        // Retake photo
+        retakeBtn.addEventListener('click', () => {
+            preview.style.display = 'none';
+            video.style.display = 'block';
+            captureBtn.classList.remove('hidden');
+            retakeBtn.classList.add('hidden');
+            processBtn.classList.add('hidden');
+            results.classList.add('hidden');
+            document.getElementById('editSection').classList.add('hidden');
+            saveSection.classList.add('hidden');
+        });
+        
+        // Process tag
+        processBtn.addEventListener('click', async () => {
+            loading.classList.remove('hidden');
+            results.classList.add('hidden');
+            document.getElementById('editSection').classList.add('hidden');
+            processBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ image: capturedImageData })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    processedData = data;
+                    
+                    // Parse the extracted text
+                    const text = data.data;
+                    const styleMatch = text.match(/Style Number:\s*(.+?)(?:\n|$)/i);
+                    const descMatch = text.match(/Description:\s*(.+?)(?:\n|$)/i);
+                    const poMatch = text.match(/PO Number:\s*(.+?)$/is);
+                    
+                    // Populate form fields
+                    document.getElementById('styleNumber').value = styleMatch ? styleMatch[1].trim() : '';
+                    document.getElementById('description').value = descMatch ? descMatch[1].trim() : '';
+                    document.getElementById('poNumber').value = poMatch ? poMatch[1].trim() : '';
+                    
+                    // Show raw results for reference
+                    results.textContent = text;
+                    results.classList.remove('hidden');
+                    
+                    // Show edit form
+                    document.getElementById('editSection').classList.remove('hidden');
+                    saveSection.classList.remove('hidden');
+                } else {
+                    results.innerHTML = `<div class="error">Error: ${data.error}</div>`;
+                    results.classList.remove('hidden');
+                }
+            } catch (err) {
+                results.innerHTML = `<div class="error">Error: ${err.message}</div>`;
+                results.classList.remove('hidden');
+            } finally {
+                loading.classList.add('hidden');
+                processBtn.disabled = false;
+            }
+        });
+        
+        // Save to tracker
+        saveToTrackerBtn.addEventListener('click', async () => {
+            // Get values from form
+            const styleNumber = document.getElementById('styleNumber').value.trim();
+            const description = document.getElementById('description').value.trim();
+            const poNumber = document.getElementById('poNumber').value.trim();
+            const scanDate = scanDateInput.value;
+            
+            // Validate required fields
+            if (!styleNumber || !description || !poNumber || !scanDate) {
+                alert('⚠️ Please fill in all fields before saving.');
+                return;
+            }
+            
+            saveToTrackerBtn.disabled = true;
+            saveToTrackerBtn.textContent = 'Saving...';
+            
+            try {
+                const response = await fetch('/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        style_number: styleNumber,
+                        description: description,
+                        po_number: poNumber,
+                        scan_date: scanDate,
+                        image_data: processedData.image_data
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Tag saved! Return date: ${new Date(data.return_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`);
+                } else {
+                    alert('❌ Error saving: ' + data.error);
+                }
+            } catch (err) {
+                alert('❌ Error saving: ' + err.message);
+            } finally {
+                saveToTrackerBtn.disabled = false;
+                saveToTrackerBtn.textContent = '💾 Save to Tracker';
+            }
+        });
+        
+        // Scan new tag
+        newTagBtn.addEventListener('click', () => {
+            preview.style.display = 'none';
+            video.style.display = 'block';
+            captureBtn.classList.remove('hidden');
+            retakeBtn.classList.add('hidden');
+            processBtn.classList.add('hidden');
+            results.classList.add('hidden');
+            document.getElementById('editSection').classList.add('hidden');
+            saveSection.classList.add('hidden');
+            
+            // Clear form fields except scan date
+            document.getElementById('styleNumber').value = '';
+            document.getElementById('description').value = '';
+            document.getElementById('poNumber').value = '';
+            scanDateInput.value = new Date().toISOString().split('T')[0];
+            updateReturnDate();
+        });
+        
+        // Stop camera when leaving page
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+</body>
+</html>
