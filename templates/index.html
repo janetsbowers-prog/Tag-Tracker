@@ -68,6 +68,33 @@
             margin-bottom: 30px;
         }
         
+        .input-options {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .option-btn {
+            background: #081a35;
+            color: white;
+            border: 2px solid #081a35;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .option-btn:hover {
+            background: #0a2347;
+        }
+        
+        .option-btn.active {
+            background: #e63946;
+            border-color: #e63946;
+        }
+        
         #video {
             width: 100%;
             max-width: 400px;
@@ -227,6 +254,12 @@
     
     <div class="container">
         <div class="camera-section">
+            <div class="input-options">
+                <button id="useCamera" class="option-btn active">📸 Use Camera</button>
+                <label for="fileUpload" class="option-btn">📁 Upload Image</label>
+                <input type="file" id="fileUpload" accept="image/*" style="display: none;">
+            </div>
+            
             <video id="video" autoplay playsinline></video>
             <canvas id="canvas"></canvas>
             <img id="preview" alt="Preview">
@@ -261,7 +294,11 @@
             <div class="form-group">
                 <label for="scanDate">Scan Date:</label>
                 <input type="date" id="scanDate">
-                <div class="date-info" id="returnDateInfo"></div>
+            </div>
+            <div class="form-group">
+                <label for="returnDate">Return Date:</label>
+                <input type="date" id="returnDate">
+                <div class="date-info">Auto-calculated as Scan Date + 30 days (editable)</div>
             </div>
         </div>
         
@@ -287,11 +324,39 @@
         const saveToTrackerBtn = document.getElementById('saveToTracker');
         const newTagBtn = document.getElementById('newTag');
         const scanDateInput = document.getElementById('scanDate');
-        const returnDateInfo = document.getElementById('returnDateInfo');
+        const returnDateInput = document.getElementById('returnDate');
+        const fileUpload = document.getElementById('fileUpload');
+        const useCameraBtn = document.getElementById('useCamera');
         
         let stream = null;
         let capturedImageData = null;
         let processedData = null;
+        
+        // Handle file upload
+        fileUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    capturedImageData = event.target.result;
+                    preview.src = capturedImageData;
+                    preview.style.display = 'block';
+                    video.style.display = 'none';
+                    
+                    // Hide capture, show retake and process
+                    captureBtn.classList.add('hidden');
+                    retakeBtn.classList.remove('hidden');
+                    processBtn.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Switch back to camera mode
+        useCameraBtn.addEventListener('click', () => {
+            useCameraBtn.classList.add('active');
+            startCamera();
+        });
         
         // Auto-start camera on page load
         async function startCamera() {
@@ -314,16 +379,14 @@
         scanDateInput.value = today;
         updateReturnDate();
         
-        // Update return date when scan date changes
+        // Update return date when scan date changes (auto-calculate)
         scanDateInput.addEventListener('change', updateReturnDate);
         
         function updateReturnDate() {
             const scanDate = new Date(scanDateInput.value);
             const returnDate = new Date(scanDate);
             returnDate.setDate(returnDate.getDate() + 30);
-            
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            returnDateInfo.textContent = `Return Date: ${returnDate.toLocaleDateString('en-US', options)}`;
+            returnDateInput.value = returnDate.toISOString().split('T')[0];
         }
         
         // Capture photo
@@ -414,9 +477,10 @@
             const description = document.getElementById('description').value.trim();
             const poNumber = document.getElementById('poNumber').value.trim();
             const scanDate = scanDateInput.value;
+            const returnDate = returnDateInput.value;
             
             // Validate required fields
-            if (!styleNumber || !description || !poNumber || !scanDate) {
+            if (!styleNumber || !description || !poNumber || !scanDate || !returnDate) {
                 alert('⚠️ Please fill in all fields before saving.');
                 return;
             }
@@ -435,6 +499,7 @@
                         description: description,
                         po_number: poNumber,
                         scan_date: scanDate,
+                        return_date: returnDate,
                         image_data: processedData.image_data
                     })
                 });
@@ -442,7 +507,7 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    alert(`✅ Tag saved! Return date: ${new Date(data.return_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`);
+                    alert(`✅ Tag saved! Return date: ${new Date(returnDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`);
                 } else {
                     alert('❌ Error saving: ' + data.error);
                 }
@@ -465,7 +530,7 @@
             document.getElementById('editSection').classList.add('hidden');
             saveSection.classList.add('hidden');
             
-            // Clear form fields except scan date
+            // Clear form fields except dates
             document.getElementById('styleNumber').value = '';
             document.getElementById('description').value = '';
             document.getElementById('poNumber').value = '';

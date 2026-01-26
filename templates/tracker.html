@@ -489,7 +489,7 @@
     </div>
     
     <script>
-        const today = new Date('{{ "now"|date("Y-m-d") }}');
+        const today = new Date('{{ today.isoformat() }}');
         
         // Export to CSV functionality
         const exportBtn = document.getElementById('exportBtn');

@@ -80,13 +80,18 @@ def save_tag():
         description = data.get('description')
         po_number = data.get('po_number')
         scan_date_str = data.get('scan_date')  # Format: YYYY-MM-DD
+        return_date_str = data.get('return_date')  # Optional, can be provided by user
         image_data = data.get('image_data')
         
         # Parse scan date
         scan_date = datetime.strptime(scan_date_str, '%Y-%m-%d').date()
         
-        # Calculate return date (30 days from scan date)
-        return_date = scan_date + timedelta(days=30)
+        # Use provided return date or calculate it
+        if return_date_str:
+            return_date = datetime.strptime(return_date_str, '%Y-%m-%d').date()
+        else:
+            # Calculate return date (30 days from scan date)
+            return_date = scan_date + timedelta(days=30)
         
         # Reconstruct raw text
         raw_text = f"Style Number: {style_number}\nDescription: {description}\nPO Number: {po_number}"
