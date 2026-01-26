@@ -175,8 +175,14 @@ def update_tag(tag_id):
         if 'scan_date' in data:
             scan_date = datetime.strptime(data['scan_date'], '%Y-%m-%d').date()
             tag.scan_date = scan_date
-            # Recalculate return date
-            tag.return_date = scan_date + timedelta(days=30)
+        
+        # Update return date if provided, otherwise recalculate
+        if 'return_date' in data:
+            return_date = datetime.strptime(data['return_date'], '%Y-%m-%d').date()
+            tag.return_date = return_date
+        else:
+            # Recalculate return date based on scan date
+            tag.return_date = tag.scan_date + timedelta(days=30)
         
         # Update raw_text
         tag.raw_text = f"Style Number: {tag.style_number}\nDescription: {tag.description}\nPO Number: {tag.po_number}"

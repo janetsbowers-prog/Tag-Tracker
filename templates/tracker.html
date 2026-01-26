@@ -477,8 +477,12 @@
             <div class="form-group">
                 <label for="editScanDate">Scan Date:</label>
                 <input type="date" id="editScanDate">
+            </div>
+            <div class="form-group">
+                <label for="editReturnDate">Return Date:</label>
+                <input type="date" id="editReturnDate">
                 <div style="margin-top: 10px; padding: 10px; background: #e8f5e9; border-radius: 6px; font-size: 14px;">
-                    <span id="editReturnDateInfo"></span>
+                    Auto-calculated as Scan Date + 30 days (editable)
                 </div>
             </div>
             <div class="modal-buttons">
@@ -595,21 +599,23 @@
             document.getElementById('editDescription').value = desc;
             document.getElementById('editPONumber').value = po;
             document.getElementById('editScanDate').value = scanDate;
-            updateEditReturnDate();
+            
+            // Calculate and set return date
+            const scan = new Date(scanDate);
+            const ret = new Date(scan);
+            ret.setDate(ret.getDate() + 30);
+            document.getElementById('editReturnDate').value = ret.toISOString().split('T')[0];
+            
             document.getElementById('editModal').style.display = 'block';
         }
         
-        // Update return date in edit modal
-        document.getElementById('editScanDate').addEventListener('change', updateEditReturnDate);
-        
-        function updateEditReturnDate() {
+        // Update return date in edit modal when scan date changes
+        document.getElementById('editScanDate').addEventListener('change', () => {
             const scanDate = new Date(document.getElementById('editScanDate').value);
             const returnDate = new Date(scanDate);
             returnDate.setDate(returnDate.getDate() + 30);
-            
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            document.getElementById('editReturnDateInfo').textContent = `Return Date: ${returnDate.toLocaleDateString('en-US', options)}`;
-        }
+            document.getElementById('editReturnDate').value = returnDate.toISOString().split('T')[0];
+        });
         
         function closeEditModal() {
             document.getElementById('editModal').style.display = 'none';
@@ -621,8 +627,9 @@
             const description = document.getElementById('editDescription').value.trim();
             const poNumber = document.getElementById('editPONumber').value.trim();
             const scanDate = document.getElementById('editScanDate').value;
+            const returnDate = document.getElementById('editReturnDate').value;
             
-            if (!styleNumber || !description || !poNumber || !scanDate) {
+            if (!styleNumber || !description || !poNumber || !scanDate || !returnDate) {
                 alert('Please fill in all fields');
                 return;
             }
@@ -637,7 +644,8 @@
                         style_number: styleNumber,
                         description: description,
                         po_number: poNumber,
-                        scan_date: scanDate
+                        scan_date: scanDate,
+                        return_date: returnDate
                     })
                 });
                 
