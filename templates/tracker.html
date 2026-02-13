@@ -63,6 +63,16 @@
             font-size: 14px;
         }
         
+        .folder-badge {
+            display: inline-block;
+            background: rgba(230, 57, 70, 0.8);
+            color: white;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        
         .top-controls {
             display: flex;
             justify-content: space-between;
@@ -81,6 +91,26 @@
         
         .back-link:hover {
             text-decoration: underline;
+        }
+        
+        .top-right-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .folder-filter {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .folder-filter:focus {
+            outline: none;
+            border-color: #e63946;
         }
         
         .export-btn {
@@ -165,6 +195,16 @@
         .tag-po {
             color: #999;
             font-size: 13px;
+            margin-bottom: 4px;
+        }
+        
+        .tag-folder {
+            display: inline-block;
+            background: #081a35;
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
             margin-bottom: 10px;
         }
         
@@ -202,6 +242,22 @@
         
         .return-date.due-soon {
             color: #ff9800;
+        }
+        
+        .days-until {
+            font-weight: bold;
+        }
+        
+        .days-until.overdue {
+            color: #dc3545;
+        }
+        
+        .days-until.due-soon {
+            color: #ff9800;
+        }
+        
+        .days-until.safe {
+            color: #2e7d32;
         }
         
         .card-buttons {
@@ -385,17 +441,31 @@
     <div class="header">
         <h1>📋 Tag Tracker</h1>
         <p class="subtitle">Return dates sorted soonest first</p>
+        {% if current_folder %}
+        <div class="folder-badge">📁 {{ current_folder.name }}</div>
+        {% endif %}
     </div>
     
     <div class="container">
         <div class="top-controls">
-            <a href="/" class="back-link">← Back to Scanner</a>
-            <button id="exportBtn" class="export-btn">📥 Export to CSV</button>
+            <a href="/" class="back-link">← Back to Folders</a>
+            <div class="top-right-controls">
+                <select class="folder-filter" id="folderFilter" onchange="filterByFolder()">
+                    <option value="">All Folders</option>
+                    {% for f in folders %}
+                    <option value="{{ f.id }}" {% if current_folder and current_folder.id == f.id %}selected{% endif %}>
+                        📁 {{ f.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <button id="exportBtn" class="export-btn">📥 Export CSV</button>
+            </div>
         </div>
         
         {% if tags %}
             <div class="stats">
-                <strong>{{ tags|length }}</strong> tags tracked
+                <strong>{{ tags|length }}</strong> tag{{ 's' if tags|length != 1 else '' }} tracked
+                {% if current_folder %} in {{ current_folder.name }}{% endif %}
             </div>
             
             <div class="search-box">
@@ -406,6 +476,7 @@
                 {% for tag in tags %}
                 {% set days_until = (tag.return_date - today).days if today else 0 %}
                 {% set card_class = 'overdue' if days_until < 0 else ('due-soon' if days_until <= 7 else '') %}
+                {% set days_class = 'overdue' if days_until < 0 else ('due-soon' if days_until <= 7 else 'safe') %}
                 <div class="tag-card {{ card_class }}" 
                      data-style="{{ tag.style_number|lower }}" 
                      data-desc="{{ tag.description|lower }}" 
@@ -416,6 +487,9 @@
                             <h3>{{ tag.description }}</h3>
                             <div class="tag-style">Style: {{ tag.style_number }}</div>
                             <div class="tag-po">PO: {{ tag.po_number }}</div>
+                            {% if tag.folder %}
+                            <span class="tag-folder">📁 {{ tag.folder.name }}</span>
+                            {% endif %}
                         </div>
                         <div class="card-buttons">
                             <button class="edit-btn" onclick="editTag({{ tag.id }}, '{{ tag.style_number|replace("'", "\\'") }}', '{{ tag.description|replace("'", "\\'") }}', '{{ tag.po_number|replace("'", "\\'") }}', '{{ tag.scan_date }}')">✏️ Edit</button>
@@ -431,12 +505,17 @@
                             <span class="date-label">Return Date:</span>
                             <span class="return-date {{ card_class }}">
                                 {{ tag.return_date.strftime('%B %d, %Y') }}
+                            </span>
+                        </div>
+                        <div class="date-row">
+                            <span class="date-label">Days Until Due:</span>
+                            <span class="days-until {{ days_class }}">
                                 {% if days_until < 0 %}
-                                    ({{ -days_until }} days overdue!)
+                                    {{ -days_until }} day{{ 's' if -days_until != 1 else '' }} overdue!
                                 {% elif days_until == 0 %}
-                                    (Due today!)
-                                {% elif days_until <= 7 %}
-                                    ({{ days_until }} days left)
+                                    Due today!
+                                {% else %}
+                                    {{ days_until }} day{{ 's' if days_until != 1 else '' }}
                                 {% endif %}
                             </span>
                         </div>
@@ -449,7 +528,7 @@
                 <h2>No Tags Yet</h2>
                 <p>Start scanning tags to track return dates!</p>
                 <p style="margin-top: 20px;">
-                    <a href="/">📸 Scan Your First Tag</a>
+                    <a href="/">📸 Go to Folders to Scan</a>
                 </p>
             </div>
         {% endif %}
@@ -495,12 +574,24 @@
     <script>
         const today = new Date('{{ today.isoformat() }}');
         
-        // Export to CSV functionality
+        // Folder filter
+        function filterByFolder() {
+            const folderId = document.getElementById('folderFilter').value;
+            if (folderId) {
+                window.location.href = `/tracker?folder_id=${folderId}`;
+            } else {
+                window.location.href = '/tracker';
+            }
+        }
+        
+        // Export to CSV
         const exportBtn = document.getElementById('exportBtn');
         if (exportBtn) {
             exportBtn.addEventListener('click', async () => {
                 try {
-                    const response = await fetch('/api/tags');
+                    const folderId = document.getElementById('folderFilter').value;
+                    const url = folderId ? `/api/tags?folder_id=${folderId}` : '/api/tags';
+                    const response = await fetch(url);
                     const data = await response.json();
                     
                     if (!data.success || data.tags.length === 0) {
@@ -510,14 +601,14 @@
                     
                     const csv = convertToCSV(data.tags);
                     const blob = new Blob([csv], { type: 'text/csv' });
-                    const url = window.URL.createObjectURL(blob);
+                    const url2 = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
-                    a.href = url;
+                    a.href = url2;
                     a.download = `tag-tracker-${new Date().toISOString().split('T')[0]}.csv`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
+                    window.URL.revokeObjectURL(url2);
                 } catch (err) {
                     alert('Error exporting: ' + err.message);
                 }
@@ -525,14 +616,16 @@
         }
         
         function convertToCSV(tags) {
-            const header = 'Style Number,Description,PO Number,Scan Date,Return Date\n';
+            const header = 'Style Number,Description,PO Number,Scan Date,Return Date,Days Until Due,Folder\n';
             const rows = tags.map(t => {
                 const style = escapeCSV(t.style_number);
                 const desc = escapeCSV(t.description);
                 const po = escapeCSV(t.po_number);
                 const scanDate = t.scan_date || '';
                 const returnDate = t.return_date || '';
-                return `${style},${desc},${po},${scanDate},${returnDate}`;
+                const daysUntil = t.days_until_due !== undefined ? t.days_until_due : '';
+                const folder = escapeCSV(t.folder_name || '');
+                return `${style},${desc},${po},${scanDate},${returnDate},${daysUntil},${folder}`;
             }).join('\n');
             return header + rows;
         }
@@ -546,7 +639,7 @@
             return text;
         }
         
-        // Search functionality
+        // Search
         const searchInput = document.getElementById('searchInput');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -600,7 +693,6 @@
             document.getElementById('editPONumber').value = po;
             document.getElementById('editScanDate').value = scanDate;
             
-            // Calculate and set return date
             const scan = new Date(scanDate);
             const ret = new Date(scan);
             ret.setDate(ret.getDate() + 30);
@@ -609,7 +701,6 @@
             document.getElementById('editModal').style.display = 'block';
         }
         
-        // Update return date in edit modal when scan date changes
         document.getElementById('editScanDate').addEventListener('change', () => {
             const scanDate = new Date(document.getElementById('editScanDate').value);
             const returnDate = new Date(scanDate);
@@ -662,7 +753,7 @@
             }
         }
         
-        // Close modal when clicking outside
+        // Close modal on outside click
         window.onclick = function(event) {
             const modal = document.getElementById('editModal');
             if (event.target == modal) {
