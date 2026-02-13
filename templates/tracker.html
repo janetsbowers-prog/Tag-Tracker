@@ -487,12 +487,20 @@
                             <h3>{{ tag.description }}</h3>
                             <div class="tag-style">Style: {{ tag.style_number }}</div>
                             <div class="tag-po">PO: {{ tag.po_number }}</div>
+                            {% if tag.price %}
+                            <div class="tag-price" style="font-size:14px; margin-bottom:4px;">
+                                💲{{ tag.price }}
+                                {% if tag.source %}
+                                <span class="tag-source" style="display:inline-block; background:{% if tag.source == 'Inline (GAP)' %}#1565c0{% else %}#6a1b9a{% endif %}; color:white; padding:2px 8px; border-radius:10px; font-size:11px; margin-left:6px;">{{ tag.source }}</span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
                             {% if tag.folder %}
                             <span class="tag-folder">📁 {{ tag.folder.name }}</span>
                             {% endif %}
                         </div>
                         <div class="card-buttons">
-                            <button class="edit-btn" onclick="editTag({{ tag.id }}, '{{ tag.style_number|replace("'", "\\'") }}', '{{ tag.description|replace("'", "\\'") }}', '{{ tag.po_number|replace("'", "\\'") }}', '{{ tag.scan_date }}')">✏️ Edit</button>
+                            <button class="edit-btn" onclick="editTag({{ tag.id }}, '{{ tag.style_number|replace("'", "\\'") }}', '{{ tag.description|replace("'", "\\'") }}', '{{ tag.po_number|replace("'", "\\'") }}', '{{ tag.scan_date }}', '{{ tag.price or "" }}', '{{ tag.source or "" }}')">✏️ Edit</button>
                             <button class="delete-btn" onclick="deleteTag({{ tag.id }})">🗑️ Delete</button>
                         </div>
                     </div>
@@ -552,6 +560,18 @@
             <div class="form-group">
                 <label for="editPONumber">PO Number:</label>
                 <input type="text" id="editPONumber">
+            </div>
+            <div class="form-group">
+                <label for="editPrice">Price:</label>
+                <input type="text" id="editPrice" placeholder="e.g. 49.99">
+            </div>
+            <div class="form-group">
+                <label for="editSource">Source:</label>
+                <select id="editSource" style="width:100%; padding:10px; border:2px solid #ddd; border-radius:6px; font-size:16px; background:white;">
+                    <option value="">-- Select --</option>
+                    <option value="Inline (GAP)">Inline (GAP)</option>
+                    <option value="Gap Factory">Gap Factory</option>
+                </select>
             </div>
             <div class="form-group">
                 <label for="editScanDate">Scan Date:</label>
@@ -616,16 +636,18 @@
         }
         
         function convertToCSV(tags) {
-            const header = 'Style Number,Description,PO Number,Scan Date,Return Date,Days Until Due,Folder\n';
+            const header = 'Style Number,Description,PO Number,Price,Source,Scan Date,Return Date,Days Until Due,Folder\n';
             const rows = tags.map(t => {
                 const style = escapeCSV(t.style_number);
                 const desc = escapeCSV(t.description);
                 const po = escapeCSV(t.po_number);
+                const price = escapeCSV(t.price || '');
+                const source = escapeCSV(t.source || '');
                 const scanDate = t.scan_date || '';
                 const returnDate = t.return_date || '';
                 const daysUntil = t.days_until_due !== undefined ? t.days_until_due : '';
                 const folder = escapeCSV(t.folder_name || '');
-                return `${style},${desc},${po},${scanDate},${returnDate},${daysUntil},${folder}`;
+                return `${style},${desc},${po},${price},${source},${scanDate},${returnDate},${daysUntil},${folder}`;
             }).join('\n');
             return header + rows;
         }
@@ -686,11 +708,13 @@
         // Edit tag
         let currentEditId = null;
         
-        function editTag(id, style, desc, po, scanDate) {
+        function editTag(id, style, desc, po, scanDate, price, source) {
             currentEditId = id;
             document.getElementById('editStyleNumber').value = style;
             document.getElementById('editDescription').value = desc;
             document.getElementById('editPONumber').value = po;
+            document.getElementById('editPrice').value = price || '';
+            document.getElementById('editSource').value = source || '';
             document.getElementById('editScanDate').value = scanDate;
             
             const scan = new Date(scanDate);
@@ -717,6 +741,8 @@
             const styleNumber = document.getElementById('editStyleNumber').value.trim();
             const description = document.getElementById('editDescription').value.trim();
             const poNumber = document.getElementById('editPONumber').value.trim();
+            const price = document.getElementById('editPrice').value.trim();
+            const source = document.getElementById('editSource').value;
             const scanDate = document.getElementById('editScanDate').value;
             const returnDate = document.getElementById('editReturnDate').value;
             
@@ -735,6 +761,8 @@
                         style_number: styleNumber,
                         description: description,
                         po_number: poNumber,
+                        price: price,
+                        source: source,
                         scan_date: scanDate,
                         return_date: returnDate
                     })

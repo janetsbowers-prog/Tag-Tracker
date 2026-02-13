@@ -306,6 +306,19 @@
                 <input type="text" id="poNumber" placeholder="Enter PO number">
             </div>
             <div class="form-group">
+                <label for="price">Price:</label>
+                <input type="text" id="price" placeholder="e.g. 49.99 (if on tag)">
+                <div class="date-info" id="sourceInfo" style="display:none; background: #e3f2fd; color: #1565c0;"></div>
+            </div>
+            <div class="form-group">
+                <label for="source">Source:</label>
+                <select id="source" style="width:100%; padding:10px; border:2px solid #ddd; border-radius:6px; font-size:16px; background:white;">
+                    <option value="">-- Auto-detected from price --</option>
+                    <option value="Inline (GAP)">Inline (GAP) — ends in .99</option>
+                    <option value="Gap Factory">Gap Factory — ends in .95</option>
+                </select>
+            </div>
+            <div class="form-group">
                 <label for="scanDate">Scan Date:</label>
                 <input type="date" id="scanDate">
             </div>
@@ -458,11 +471,23 @@
                     const text = data.data;
                     const styleMatch = text.match(/Style Number:\s*(.+?)(?:\n|$)/i);
                     const descMatch = text.match(/Description:\s*(.+?)(?:\n|$)/i);
-                    const poMatch = text.match(/PO Number:\s*(.+?)$/is);
+                    const poMatch = text.match(/PO Number:\s*(.+?)(?:\n|$)/is);
+                    const priceMatch = text.match(/Price:\s*\$?([\d.]+|N\/A)(?:\n|$)/i);
                     
                     document.getElementById('styleNumber').value = styleMatch ? styleMatch[1].trim() : '';
                     document.getElementById('description').value = descMatch ? descMatch[1].trim() : '';
                     document.getElementById('poNumber').value = poMatch ? poMatch[1].trim() : '';
+                    
+                    // Handle price
+                    const priceVal = priceMatch ? priceMatch[1].trim() : '';
+                    if (priceVal && priceVal !== 'N/A') {
+                        document.getElementById('price').value = priceVal;
+                        autoDetectSource(priceVal);
+                    } else {
+                        document.getElementById('price').value = '';
+                        document.getElementById('source').value = '';
+                        document.getElementById('sourceInfo').style.display = 'none';
+                    }
                     
                     results.textContent = text;
                     results.classList.remove('hidden');
@@ -482,11 +507,46 @@
             }
         });
         
+        // Auto-detect source from price
+        function autoDetectSource(price) {
+            const sourceSelect = document.getElementById('source');
+            const sourceInfo = document.getElementById('sourceInfo');
+            
+            if (price.endsWith('.99')) {
+                sourceSelect.value = 'Inline (GAP)';
+                sourceInfo.textContent = '✅ Price ends in .99 → Inline (GAP)';
+                sourceInfo.style.display = 'block';
+            } else if (price.endsWith('.95')) {
+                sourceSelect.value = 'Gap Factory';
+                sourceInfo.textContent = '✅ Price ends in .95 → Gap Factory';
+                sourceInfo.style.display = 'block';
+            } else {
+                sourceSelect.value = '';
+                sourceInfo.textContent = 'Price does not end in .99 or .95 — select source manually';
+                sourceInfo.style.display = 'block';
+                sourceInfo.style.background = '#fff3e0';
+                sourceInfo.style.color = '#e65100';
+            }
+        }
+        
+        // Listen for manual price changes
+        document.getElementById('price').addEventListener('input', (e) => {
+            const val = e.target.value.trim();
+            if (val) {
+                autoDetectSource(val);
+            } else {
+                document.getElementById('source').value = '';
+                document.getElementById('sourceInfo').style.display = 'none';
+            }
+        });
+        
         // Save to tracker - now includes folder_id
         saveToTrackerBtn.addEventListener('click', async () => {
             const styleNumber = document.getElementById('styleNumber').value.trim();
             const description = document.getElementById('description').value.trim();
             const poNumber = document.getElementById('poNumber').value.trim();
+            const price = document.getElementById('price').value.trim();
+            const source = document.getElementById('source').value;
             const scanDate = scanDateInput.value;
             const returnDate = returnDateInput.value;
             
@@ -511,7 +571,9 @@
                         scan_date: scanDate,
                         return_date: returnDate,
                         image_data: processedData.image_data,
-                        folder_id: FOLDER_ID
+                        folder_id: FOLDER_ID,
+                        price: price,
+                        source: source
                     })
                 });
                 
@@ -544,6 +606,9 @@
             document.getElementById('styleNumber').value = '';
             document.getElementById('description').value = '';
             document.getElementById('poNumber').value = '';
+            document.getElementById('price').value = '';
+            document.getElementById('source').value = '';
+            document.getElementById('sourceInfo').style.display = 'none';
             scanDateInput.value = new Date().toISOString().split('T')[0];
             updateReturnDate();
         });

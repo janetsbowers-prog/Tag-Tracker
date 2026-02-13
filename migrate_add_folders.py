@@ -42,6 +42,18 @@ def migrate():
                     ) THEN
                         ALTER TABLE tags ADD COLUMN folder_id INTEGER REFERENCES folders(id);
                     END IF;
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='tags' AND column_name='price'
+                    ) THEN
+                        ALTER TABLE tags ADD COLUMN price VARCHAR(20);
+                    END IF;
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name='tags' AND column_name='source'
+                    ) THEN
+                        ALTER TABLE tags ADD COLUMN source VARCHAR(50);
+                    END IF;
                 END $$;
             """)
             
@@ -83,6 +95,18 @@ def migrate():
             print("Added folder_id column to tags table.")
         else:
             print("folder_id column already exists.")
+        
+        if 'price' not in columns:
+            cursor.execute("ALTER TABLE tags ADD COLUMN price VARCHAR(20)")
+            print("Added price column to tags table.")
+        else:
+            print("price column already exists.")
+        
+        if 'source' not in columns:
+            cursor.execute("ALTER TABLE tags ADD COLUMN source VARCHAR(50)")
+            print("Added source column to tags table.")
+        else:
+            print("source column already exists.")
         
         conn.commit()
         conn.close()

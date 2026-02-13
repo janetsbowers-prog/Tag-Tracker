@@ -38,6 +38,8 @@ class Tag(db.Model):
     return_date = db.Column(db.Date, nullable=False)
     raw_text = db.Column(db.Text)
     image_data = db.Column(db.LargeBinary)
+    price = db.Column(db.String(20), nullable=True)  # e.g. "49.99"
+    source = db.Column(db.String(50), nullable=True)  # "Inline (GAP)" or "Gap Factory"
     folder_id = db.Column(db.Integer, db.ForeignKey('folders.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -62,6 +64,8 @@ class Tag(db.Model):
             'scan_date': self.scan_date.isoformat() if self.scan_date else None,
             'return_date': self.return_date.isoformat() if self.return_date else None,
             'days_until_due': self.days_until_due,
+            'price': self.price,
+            'source': self.source,
             'folder_id': self.folder_id,
             'folder_name': self.folder.name if self.folder else None,
             'raw_text': self.raw_text,

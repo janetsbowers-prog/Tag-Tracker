@@ -127,7 +127,7 @@ def upload_image():
                         },
                         {
                             "type": "text",
-                            "text": "This is a clothing tag label. Please extract ONLY these three pieces of information in this exact format:\n\nStyle Number: [first line - the style/item number]\nDescription: [second line - the product description]\nPO Number: [last line - the PO/order number]\n\nBe precise and extract exactly what you see on the tag."
+                            "text": "This is a clothing tag label. Please extract ONLY these pieces of information in this exact format:\n\nStyle Number: [the style/item number]\nDescription: [the product description]\nPO Number: [the PO/order number]\nPrice: [the price if visible, or N/A if not found]\n\nBe precise and extract exactly what you see on the tag. The price is often at the bottom of the tag and may include a dollar sign."
                         }
                     ],
                 }
@@ -160,6 +160,15 @@ def save_tag():
         return_date_str = data.get('return_date')
         image_data = data.get('image_data')
         folder_id = data.get('folder_id')
+        price = data.get('price', '').strip()
+        source = data.get('source', '').strip()
+        
+        # Auto-classify source based on price ending
+        if price and not source:
+            if price.endswith('.99'):
+                source = 'Inline (GAP)'
+            elif price.endswith('.95'):
+                source = 'Gap Factory'
         
         scan_date = datetime.strptime(scan_date_str, '%Y-%m-%d').date()
         
@@ -178,7 +187,9 @@ def save_tag():
             return_date=return_date,
             raw_text=raw_text,
             image_data=base64.b64decode(image_data) if image_data else None,
-            folder_id=folder_id
+            folder_id=folder_id,
+            price=price if price else None,
+            source=source if source else None
         )
         
         db.session.add(new_tag)
@@ -259,6 +270,18 @@ def update_tag(tag_id):
         tag.style_number = data.get('style_number', tag.style_number)
         tag.description = data.get('description', tag.description)
         tag.po_number = data.get('po_number', tag.po_number)
+        
+        # Update price and source
+        if 'price' in data:
+            tag.price = data['price'].strip() if data['price'] else None
+        if 'source' in data:
+            tag.source = data['source'].strip() if data['source'] else None
+        # Auto-classify if price changed but source wasn't explicitly set
+        if 'price' in data and 'source' not in data and tag.price:
+            if tag.price.endswith('.99'):
+                tag.source = 'Inline (GAP)'
+            elif tag.price.endswith('.95'):
+                tag.source = 'Gap Factory'
         
         if 'scan_date' in data:
             scan_date = datetime.strptime(data['scan_date'], '%Y-%m-%d').date()
