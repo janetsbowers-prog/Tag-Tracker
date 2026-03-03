@@ -487,6 +487,13 @@
                             <h3>{{ tag.description }}</h3>
                             <div class="tag-style">Style: {{ tag.style_number }}</div>
                             <div class="tag-po">PO: {{ tag.po_number }}</div>
+                            <div class="tag-gap-link" style="margin-bottom:4px;">
+                                <a href="https://www.gap.com/browse/product.do?pid={{ tag.style_number }}012&searchText={{ tag.style_number }}#pdp-page-content" 
+                                   target="_blank" 
+                                   style="color:#1565c0; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                                   🔗 View on Gap.com
+                                </a>
+                            </div>
                             {% if tag.price %}
                             <div class="tag-price" style="font-size:14px; margin-bottom:4px;">
                                 💲{{ tag.price }}
@@ -636,7 +643,7 @@
         }
         
         function convertToCSV(tags) {
-            const header = 'Style Number,Description,PO Number,Price,Source,Scan Date,Return Date,Days Until Due,Folder\n';
+            const header = 'Style Number,Description,PO Number,Price,Source,Scan Date,Return Date,Days Until Due,Folder,Gap Link\n';
             const rows = tags.map(t => {
                 const style = escapeCSV(t.style_number);
                 const desc = escapeCSV(t.description);
@@ -647,7 +654,8 @@
                 const returnDate = t.return_date || '';
                 const daysUntil = t.days_until_due !== undefined ? t.days_until_due : '';
                 const folder = escapeCSV(t.folder_name || '');
-                return `${style},${desc},${po},${price},${source},${scanDate},${returnDate},${daysUntil},${folder}`;
+                const gapLink = t.style_number ? `https://www.gap.com/browse/product.do?pid=${t.style_number}012&searchText=${t.style_number}#pdp-page-content` : '';
+                return `${style},${desc},${po},${price},${source},${scanDate},${returnDate},${daysUntil},${folder},${gapLink}`;
             }).join('\n');
             return header + rows;
         }
