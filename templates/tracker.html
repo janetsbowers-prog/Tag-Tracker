@@ -488,7 +488,8 @@
                             <div class="tag-style">Style: {{ tag.style_number }}</div>
                             <div class="tag-po">PO: {{ tag.po_number }}</div>
                             <div class="tag-gap-link" style="margin-bottom:4px;">
-                                <a href="https://www.gap.com/browse/product.do?pid={{ tag.style_number }}012&searchText={{ tag.style_number }}#pdp-page-content" 
+                                {% set base_style = tag.style_number.split('-')[0] %}
+                                <a href="https://www.gap.com/browse/product.do?pid={{ base_style }}012&searchText={{ base_style }}#pdp-page-content" 
                                    target="_blank" 
                                    style="color:#1565c0; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
                                    🔗 View on Gap.com
@@ -654,7 +655,7 @@
                 const returnDate = t.return_date || '';
                 const daysUntil = t.days_until_due !== undefined ? t.days_until_due : '';
                 const folder = escapeCSV(t.folder_name || '');
-                const gapLink = t.style_number ? `https://www.gap.com/browse/product.do?pid=${t.style_number}012&searchText=${t.style_number}#pdp-page-content` : '';
+                const gapLink = t.style_number ? (() => { const base = t.style_number.split('-')[0]; return `https://www.gap.com/browse/product.do?pid=${base}012&searchText=${base}#pdp-page-content`; })() : '';
                 return `${style},${desc},${po},${price},${source},${scanDate},${returnDate},${daysUntil},${folder},${gapLink}`;
             }).join('\n');
             return header + rows;
