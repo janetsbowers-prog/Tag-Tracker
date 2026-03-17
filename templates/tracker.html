@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tag Tracker</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/static/manifest.json">
+    
+    <!-- App Icons -->
+    <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
+    <link rel="apple-touch-icon" href="/static/icon.svg">
+    
+    <!-- Theme Colors -->
+    <meta name="theme-color" content="#081a35">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Tag Tracker">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f2ec;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .header {
+            background: #081a35;
+            padding: 30px 20px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto 30px;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            margin: 0;
+            font-size: 32px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: white;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+        
+        .folder-badge {
+            display: inline-block;
+            background: rgba(230, 57, 70, 0.8);
+            color: white;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        
+        .top-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .back-link {
+            display: inline-block;
+            color: #e63946;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        .top-right-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .folder-filter {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .folder-filter:focus {
+            outline: none;
+            border-color: #e63946;
+        }
+        
+        .export-btn {
+            background: #2e7d32;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .export-btn:hover {
+            background: #1b5e20;
+        }
+        
+        .search-box {
+            margin-bottom: 20px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: #e63946;
+        }
+        
+        .tag-card {
+            background: #f9f9f9;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #e63946;
+            transition: transform 0.2s;
+        }
+        
+        .tag-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .tag-card.overdue {
+            border-left-color: #dc3545;
+            background: #ffebee;
+        }
+        
+        .tag-card.due-soon {
+            border-left-color: #ff9800;
+            background: #fff3e0;
+        }
+        
+        .tag-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+        
+        .tag-title {
+            flex: 1;
+        }
+        
+        .tag-card h3 {
+            color: #e63946;
+            margin-bottom: 5px;
+        }
+        
+        .tag-style {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .tag-po {
+            color: #999;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        
+        .tag-folder {
+            display: inline-block;
+            background: #081a35;
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .tag-dates {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .date-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .date-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .date-label {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .return-date {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+        
+        .return-date.overdue {
+            color: #dc3545;
+        }
+        
+        .return-date.due-soon {
+            color: #ff9800;
+        }
+        
+        .days-until {
+            font-weight: bold;
+        }
+        
+        .days-until.overdue {
+            color: #dc3545;
+        }
+        
+        .days-until.due-soon {
+            color: #ff9800;
+        }
+        
+        .days-until.safe {
+            color: #2e7d32;
+        }
+        
+        .card-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .edit-btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .edit-btn:hover {
+            background: #1976D2;
+        }
+        
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .delete-btn:hover {
+            background: #c82333;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .empty-state h2 {
+            margin-bottom: 15px;
+            color: #e63946;
+        }
+        
+        .empty-state a {
+            color: #e63946;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        
+        .empty-state a:hover {
+            text-decoration: underline;
+        }
+        
+        .stats {
+            background: #fff5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 2px solid #ffcccb;
+        }
+        
+        .stats strong {
+            color: #e63946;
+            font-size: 24px;
+        }
+        
+        /* Edit Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h2 {
+            color: #e63946;
+            margin: 0;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+        }
+        
+        .close-btn:hover {
+            color: #333;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #e63946;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        
+        .save-edit-btn {
+            background: #e63946;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .save-edit-btn:hover {
+            background: #d62828;
+        }
+        
+        .cancel-btn {
+            background: #666;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .cancel-btn:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📋 Tag Tracker</h1>
+        <p class="subtitle">Return dates sorted soonest first</p>
+        {% if current_folder %}
+        <div class="folder-badge">📁 {{ current_folder.name }}</div>
+        {% elif show_general %}
+        <div class="folder-badge" style="background:rgba(96,125,139,0.8);">📥 General Inbox</div>
+        {% endif %}
+    </div>
+    
+    <div class="container">
+        <div class="top-controls">
+            <a href="/" class="back-link">← Back to Folders</a>
+            <div class="top-right-controls">
+                <select class="folder-filter" id="folderFilter" onchange="filterByFolder()">
+                    <option value="">All Folders</option>
+                    <option value="general" {% if show_general %}selected{% endif %}>📥 General Inbox</option>
+                    {% for f in folders %}
+                    <option value="{{ f.id }}" {% if current_folder and current_folder.id == f.id %}selected{% endif %}>
+                        📁 {{ f.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <button id="exportBtn" class="export-btn">📥 Export CSV</button>
+            </div>
+        </div>
+        
+        {% if tags %}
+            <div class="stats">
+                <strong>{{ tags|length }}</strong> tag{{ 's' if tags|length != 1 else '' }} tracked
+                {% if current_folder %} in {{ current_folder.name }}{% endif %}
+            </div>
+            
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Search by style, description, or PO...">
+            </div>
+            
+            <div id="tagList">
+                {% for tag in tags %}
+                {% set days_until = (tag.return_date - today).days if today else 0 %}
+                {% set card_class = 'overdue' if days_until < 0 else ('due-soon' if days_until <= 7 else '') %}
+                {% set days_class = 'overdue' if days_until < 0 else ('due-soon' if days_until <= 7 else 'safe') %}
+                <div class="tag-card {{ card_class }}" 
+                     data-style="{{ tag.style_number|lower }}" 
+                     data-desc="{{ tag.description|lower }}" 
+                     data-po="{{ tag.po_number|lower }}"
+                     data-id="{{ tag.id }}">
+                    <div class="tag-header">
+                        <div class="tag-title">
+                            <h3>{{ tag.description }}</h3>
+                            <div class="tag-style">Style: {{ tag.style_number }}</div>
+                            <div class="tag-po">PO: {{ tag.po_number }}</div>
+                            <div class="tag-gap-link" style="margin-bottom:4px;">
+                                {% set base_style = tag.style_number.split('-')[0] %}
+                                {% if tag.source == 'Gap Factory' %}
+                                <a href="https://www.gapfactory.com/browse/product.do?pid={{ base_style }}012&searchText={{ base_style }}#pdp-page-content" 
+                                   target="_blank" 
+                                   style="color:#6a1b9a; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                                   🔗 View on GapFactory.com
+                                </a>
+                                {% else %}
+                                <a href="https://www.gap.com/browse/product.do?pid={{ base_style }}012&searchText={{ base_style }}#pdp-page-content" 
+                                   target="_blank" 
+                                   style="color:#1565c0; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                                   🔗 View on Gap.com
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% if tag.price %}
+                            <div class="tag-price" style="font-size:14px; margin-bottom:4px;">
+                                💲{{ tag.price }}
+                                {% if tag.source %}
+                                <span class="tag-source" style="display:inline-block; background:{% if tag.source == 'Inline (GAP)' %}#1565c0{% else %}#6a1b9a{% endif %}; color:white; padding:2px 8px; border-radius:10px; font-size:11px; margin-left:6px;">{{ tag.source }}</span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            {% if tag.folder %}
+                            <span class="tag-folder">📁 {{ tag.folder.name }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="card-buttons">
+                            <button class="edit-btn" onclick="editTag({{ tag.id }}, '{{ tag.style_number|replace("'", "\\'") }}', '{{ tag.description|replace("'", "\\'") }}', '{{ tag.po_number|replace("'", "\\'") }}', '{{ tag.scan_date }}', '{{ tag.price or "" }}', '{{ tag.source or "" }}')">✏️ Edit</button>
+                            <button class="edit-btn" style="background:#607d8b;" onclick="openMoveModal({{ tag.id }}, '{{ tag.description|replace("'", "\\'") }}')">📁 Move</button>
+                            <button class="delete-btn" onclick="deleteTag({{ tag.id }})">🗑️ Delete</button>
+                        </div>
+                    </div>
+                    <div class="tag-dates">
+                        <div class="date-row">
+                            <span class="date-label">Scan Date:</span>
+                            <span>{{ tag.scan_date.strftime('%B %d, %Y') }}</span>
+                        </div>
+                        <div class="date-row">
+                            <span class="date-label">Return Date:</span>
+                            <span class="return-date {{ card_class }}">
+                                {{ tag.return_date.strftime('%B %d, %Y') }}
+                            </span>
+                        </div>
+                        <div class="date-row">
+                            <span class="date-label">Days Until Due:</span>
+                            <span class="days-until {{ days_class }}">
+                                {% if days_until < 0 %}
+                                    {{ -days_until }} day{{ 's' if -days_until != 1 else '' }} overdue!
+                                {% elif days_until == 0 %}
+                                    Due today!
+                                {% else %}
+                                    {{ days_until }} day{{ 's' if days_until != 1 else '' }}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <h2>No Tags Yet</h2>
+                <p>Start scanning tags to track return dates!</p>
+                <p style="margin-top: 20px;">
+                    <a href="/">📸 Go to Folders to Scan</a>
+                </p>
+            </div>
+        {% endif %}
+    </div>
+    
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Tag</h2>
+                <button class="close-btn" onclick="closeEditModal()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="editStyleNumber">Style Number:</label>
+                <input type="text" id="editStyleNumber">
+            </div>
+            <div class="form-group">
+                <label for="editDescription">Description:</label>
+                <input type="text" id="editDescription">
+            </div>
+            <div class="form-group">
+                <label for="editPONumber">PO Number:</label>
+                <input type="text" id="editPONumber">
+            </div>
+            <div class="form-group">
+                <label for="editPrice">Price:</label>
+                <input type="text" id="editPrice" placeholder="e.g. 49.99">
+            </div>
+            <div class="form-group">
+                <label for="editSource">Source:</label>
+                <select id="editSource" style="width:100%; padding:10px; border:2px solid #ddd; border-radius:6px; font-size:16px; background:white;">
+                    <option value="">-- Select --</option>
+                    <option value="Inline (GAP)">Inline (GAP) — ends in .95</option>
+                    <option value="Gap Factory">Gap Factory — ends in .99</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="editScanDate">Scan Date:</label>
+                <input type="date" id="editScanDate">
+            </div>
+            <div class="form-group">
+                <label for="editReturnDate">Return Date:</label>
+                <input type="date" id="editReturnDate">
+                <div style="margin-top: 10px; padding: 10px; background: #e8f5e9; border-radius: 6px; font-size: 14px;">
+                    Auto-calculated as Scan Date + 30 days (editable)
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeEditModal()">Cancel</button>
+                <button class="save-edit-btn" onclick="saveEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Move to Folder Modal -->
+    <div id="moveModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Move Tag</h2>
+                <button class="close-btn" onclick="closeMoveModal()">&times;</button>
+            </div>
+            <p id="moveTagName" style="color:#666; margin-bottom:16px; font-size:15px;"></p>
+            <div class="form-group">
+                <label for="moveFolderSelect">Move to:</label>
+                <select id="moveFolderSelect" style="width:100%; padding:10px; border:2px solid #ddd; border-radius:6px; font-size:16px; background:white;">
+                    <option value="">📥 General Inbox (no folder)</option>
+                    {% for f in folders %}
+                    <option value="{{ f.id }}">📁 {{ f.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeMoveModal()">Cancel</button>
+                <button class="save-edit-btn" style="background:#607d8b;" onclick="saveMove()">Move</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const today = new Date('{{ today.isoformat() }}');
+        
+        // Folder filter
+        function filterByFolder() {
+            const val = document.getElementById('folderFilter').value;
+            if (val === 'general') {
+                window.location.href = '/tracker?general=1';
+            } else if (val) {
+                window.location.href = `/tracker?folder_id=${val}`;
+            } else {
+                window.location.href = '/tracker';
+            }
+        }
+
+        // Move modal
+        let moveTagId = null;
+
+        function openMoveModal(id, description) {
+            moveTagId = id;
+            document.getElementById('moveTagName').textContent = description;
+            document.getElementById('moveModal').style.display = 'block';
+        }
+
+        function closeMoveModal() {
+            document.getElementById('moveModal').style.display = 'none';
+            moveTagId = null;
+        }
+
+        async function saveMove() {
+            const folderId = document.getElementById('moveFolderSelect').value;
+            try {
+                const resp = await fetch(`/api/tag/${moveTagId}/move`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ folder_id: folderId ? parseInt(folderId) : null })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    closeMoveModal();
+                    window.location.reload();
+                } else {
+                    alert('Error moving tag: ' + data.error);
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+        
+        // Export to CSV
+        const exportBtn = document.getElementById('exportBtn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', async () => {
+                try {
+                    const folderId = document.getElementById('folderFilter').value;
+                    const url = folderId ? `/api/tags?folder_id=${folderId}` : '/api/tags';
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (!data.success || data.tags.length === 0) {
+                        alert('No tags to export!');
+                        return;
+                    }
+                    
+                    const csv = convertToCSV(data.tags);
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url2 = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url2;
+                    a.download = `tag-tracker-${new Date().toISOString().split('T')[0]}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url2);
+                } catch (err) {
+                    alert('Error exporting: ' + err.message);
+                }
+            });
+        }
+        
+        function convertToCSV(tags) {
+            const header = 'Style Number,Description,PO Number,Price,Source,Scan Date,Return Date,Days Until Due,Folder,Gap Link\n';
+            const rows = tags.map(t => {
+                const style = escapeCSV(t.style_number);
+                const desc = escapeCSV(t.description);
+                const po = escapeCSV(t.po_number);
+                const price = escapeCSV(t.price || '');
+                const source = escapeCSV(t.source || '');
+                const scanDate = t.scan_date || '';
+                const returnDate = t.return_date || '';
+                const daysUntil = t.days_until_due !== undefined ? t.days_until_due : '';
+                const folder = escapeCSV(t.folder_name || '');
+                const gapLink = t.style_number ? (() => { const base = t.style_number.split('-')[0]; return `https://www.gap.com/browse/product.do?pid=${base}012&searchText=${base}#pdp-page-content`; })() : '';
+                return `${style},${desc},${po},${price},${source},${scanDate},${returnDate},${daysUntil},${folder},${gapLink}`;
+            }).join('\n');
+            return header + rows;
+        }
+        
+        function escapeCSV(text) {
+            if (!text) return '';
+            text = text.replace(/"/g, '""');
+            if (text.includes(',') || text.includes('\n') || text.includes('"')) {
+                return `"${text}"`;
+            }
+            return text;
+        }
+        
+        // Search
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const cards = document.querySelectorAll('.tag-card');
+                
+                cards.forEach(card => {
+                    const style = card.getAttribute('data-style');
+                    const desc = card.getAttribute('data-desc');
+                    const po = card.getAttribute('data-po');
+                    
+                    if (style.includes(searchTerm) || desc.includes(searchTerm) || po.includes(searchTerm)) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        }
+        
+        // Delete tag
+        async function deleteTag(id) {
+            if (!confirm('Are you sure you want to delete this tag?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/tag/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert('Error deleting tag: ' + data.error);
+                }
+            } catch (err) {
+                alert('Error deleting tag: ' + err.message);
+            }
+        }
+        
+        // Edit tag
+        let currentEditId = null;
+        
+        function editTag(id, style, desc, po, scanDate, price, source) {
+            currentEditId = id;
+            document.getElementById('editStyleNumber').value = style;
+            document.getElementById('editDescription').value = desc;
+            document.getElementById('editPONumber').value = po;
+            document.getElementById('editPrice').value = price || '';
+            document.getElementById('editSource').value = source || '';
+            document.getElementById('editScanDate').value = scanDate;
+            
+            const scan = new Date(scanDate);
+            const ret = new Date(scan);
+            ret.setDate(ret.getDate() + 30);
+            document.getElementById('editReturnDate').value = ret.toISOString().split('T')[0];
+            
+            document.getElementById('editModal').style.display = 'block';
+        }
+        
+        document.getElementById('editScanDate').addEventListener('change', () => {
+            const scanDate = new Date(document.getElementById('editScanDate').value);
+            const returnDate = new Date(scanDate);
+            returnDate.setDate(returnDate.getDate() + 30);
+            document.getElementById('editReturnDate').value = returnDate.toISOString().split('T')[0];
+        });
+        
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            currentEditId = null;
+        }
+        
+        async function saveEdit() {
+            const styleNumber = document.getElementById('editStyleNumber').value.trim();
+            const description = document.getElementById('editDescription').value.trim();
+            const poNumber = document.getElementById('editPONumber').value.trim();
+            const price = document.getElementById('editPrice').value.trim();
+            const source = document.getElementById('editSource').value;
+            const scanDate = document.getElementById('editScanDate').value;
+            const returnDate = document.getElementById('editReturnDate').value;
+            
+            if (!styleNumber || !description || !poNumber || !scanDate || !returnDate) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/tag/${currentEditId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        style_number: styleNumber,
+                        description: description,
+                        po_number: poNumber,
+                        price: price,
+                        source: source,
+                        scan_date: scanDate,
+                        return_date: returnDate
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    closeEditModal();
+                    window.location.reload();
+                } else {
+                    alert('Error updating tag: ' + data.error);
+                }
+            } catch (err) {
+                alert('Error updating tag: ' + err.message);
+            }
+        }
+        
+        // Close modals on outside click
+        window.onclick = function(event) {
+            const editModal = document.getElementById('editModal');
+            const moveModal = document.getElementById('moveModal');
+            if (event.target == editModal) closeEditModal();
+            if (event.target == moveModal) closeMoveModal();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tag Tracker{% if folder %} - {{ folder.name }}{% endif %}</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/static/manifest.json">
+    
+    <!-- App Icons -->
+    <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
+    <link rel="apple-touch-icon" href="/static/icon.svg">
+    
+    <!-- Theme Colors -->
+    <meta name="theme-color" content="#081a35">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Tag Tracker">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f2ec;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: #081a35;
+            padding: 30px 20px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 { text-align: center; color: white; margin: 0; font-size: 32px; }
+        .subtitle { text-align: center; color: white; margin-top: 5px; font-size: 14px; }
+        
+        .folder-badge {
+            display: inline-block;
+            background: rgba(230, 57, 70, 0.8);
+            color: white;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .general-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.25);
+            color: white;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .camera-section { text-align: center; margin-bottom: 30px; }
+        
+        .input-options {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .option-btn {
+            background: #081a35;
+            color: white;
+            border: 2px solid #081a35;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .option-btn:hover { background: #0a2347; }
+        .option-btn.active { background: #e63946; border-color: #e63946; }
+        
+        #video { width: 100%; max-width: 400px; border-radius: 10px; display: block; margin: 20px auto; }
+        #canvas { display: none; }
+        #preview { width: 100%; max-width: 400px; border-radius: 10px; display: none; margin: 20px auto; }
+        
+        button {
+            background: #e63946;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+            transition: background 0.3s;
+        }
+        button:hover { background: #d62828; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        
+        .hidden { display: none; }
+        
+        .loading { text-align: center; color: #e63946; margin: 20px 0; font-size: 18px; }
+        .saving-indicator { text-align: center; color: #666; margin: 8px 0; font-size: 14px; }
+        
+        .save-banner {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 16px 20px;
+            border-radius: 10px;
+            margin: 16px 0;
+            border-left: 4px solid #2e7d32;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .save-banner .banner-icon { font-size: 28px; }
+        .save-banner .banner-text strong { display: block; font-size: 17px; }
+        .save-banner .banner-text small { color: #388e3c; font-size: 14px; }
+        
+        .edit-section {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 16px;
+            border: 2px solid #ddd;
+        }
+        
+        .edit-section h3 { color: #555; margin-top: 0; margin-bottom: 15px; font-size: 15px; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #333; }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+            background: white;
+        }
+        .form-group input:focus,
+        .form-group select:focus { outline: none; border-color: #e63946; }
+        
+        .date-info {
+            background: #e8f5e9;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-size: 13px;
+            color: #2e7d32;
+        }
+        
+        .button-group { display: flex; justify-content: center; flex-wrap: wrap; }
+        
+        .nav-links { display: flex; justify-content: space-between; margin-top: 24px; }
+        .nav-link { color: #e63946; text-decoration: none; font-weight: bold; }
+        .nav-link:hover { text-decoration: underline; }
+
+        .error-box {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏷️ Tag Tracker</h1>
+        <p class="subtitle">Scan and track clothing tags</p>
+        {% if folder %}
+            <div class="folder-badge">📁 {{ folder.name }}</div>
+        {% else %}
+            <div class="general-badge">📥 General Inbox</div>
+        {% endif %}
+    </div>
+    
+    <div class="container">
+        <div class="camera-section">
+            <div class="input-options">
+                <button id="useCamera" class="option-btn active">📸 Use Camera</button>
+                <label for="fileUpload" class="option-btn">📁 Upload Image</label>
+                <input type="file" id="fileUpload" accept="image/*" style="display: none;">
+            </div>
+            
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+            <img id="preview" alt="Preview">
+            
+            <div class="button-group" id="cameraControls">
+                <button id="capture">Take Photo</button>
+                <button id="retake" class="hidden">Retake</button>
+                <button id="process" class="hidden">Process Tag</button>
+            </div>
+        </div>
+        
+        <div id="loading" class="loading hidden">⏳ Reading tag...</div>
+        <div id="savingIndicator" class="saving-indicator hidden">💾 Saving automatically...</div>
+        <div id="errorBox" class="error-box hidden"></div>
+
+        <!-- Auto-save success banner -->
+        <div id="saveBanner" class="save-banner hidden">
+            <div class="banner-icon">✅</div>
+            <div class="banner-text">
+                <strong>Saved to {% if folder %}{{ folder.name }}{% else %}General Inbox{% endif %}!</strong>
+                <small id="bannerReturnDate"></small>
+            </div>
+        </div>
+
+        <!-- Editable fields shown after save for quick corrections -->
+        <div id="editSection" class="edit-section hidden">
+            <h3>✏️ Review &amp; correct if needed — changes save instantly</h3>
+            <div class="form-group">
+                <label for="styleNumber">Style Number:</label>
+                <input type="text" id="styleNumber" placeholder="Style number">
+            </div>
+            <div class="form-group">
+                <label for="description">Description:</label>
+                <input type="text" id="description" placeholder="Description">
+            </div>
+            <div class="form-group">
+                <label for="poNumber">PO Number:</label>
+                <input type="text" id="poNumber" placeholder="PO number">
+            </div>
+            <div class="form-group">
+                <label for="price">Price:</label>
+                <input type="text" id="price" placeholder="e.g. 49.99">
+                <div id="sourceInfo" style="display:none; padding:8px; border-radius:6px; margin-top:8px; font-size:13px;"></div>
+            </div>
+            <div class="form-group">
+                <label for="source">Source:</label>
+                <select id="source">
+                    <option value="">-- Auto-detected from price --</option>
+                    <option value="Inline (GAP)">Inline (GAP) — ends in .95</option>
+                    <option value="Gap Factory">Gap Factory — ends in .99</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="scanDate">Scan Date:</label>
+                <input type="date" id="scanDate">
+            </div>
+            <div class="form-group">
+                <label for="returnDate">Return Date:</label>
+                <input type="date" id="returnDate">
+                <div class="date-info">Auto-calculated as Scan Date + 30 days (editable)</div>
+            </div>
+            <div style="text-align:center; margin-top:8px;">
+                <button id="saveEdits" style="background:#2196F3; padding:11px 28px; font-size:15px; margin:0;">
+                    💾 Save Changes
+                </button>
+            </div>
+        </div>
+        
+        <div id="actionSection" class="hidden" style="text-align:center; margin-top:16px;">
+            <button id="newTag">📸 Scan Another Tag</button>
+        </div>
+        
+        <div class="nav-links">
+            <a href="/" class="nav-link">← Back to Folders</a>
+            <a href="/tracker{% if folder_id %}?folder_id={{ folder_id }}{% else %}?general=1{% endif %}" class="nav-link">📋 View Tags</a>
+        </div>
+    </div>
+    
+    <script>
+        const FOLDER_ID = {{ folder_id if folder_id else 'null' }};
+
+        const video      = document.getElementById('video');
+        const canvas     = document.getElementById('canvas');
+        const preview    = document.getElementById('preview');
+        const captureBtn = document.getElementById('capture');
+        const retakeBtn  = document.getElementById('retake');
+        const processBtn = document.getElementById('process');
+        const loading    = document.getElementById('loading');
+        const savingEl   = document.getElementById('savingIndicator');
+        const saveBanner = document.getElementById('saveBanner');
+        const errorBox   = document.getElementById('errorBox');
+        const fileUpload = document.getElementById('fileUpload');
+        const useCameraBtn = document.getElementById('useCamera');
+        const scanDateInput   = document.getElementById('scanDate');
+        const returnDateInput = document.getElementById('returnDate');
+
+        let stream = null;
+        let capturedImageData = null;
+        let currentTagId = null;
+
+        // ── Vibrate helper ──────────────────────────────────────────────
+        function vibrate(pattern) {
+            if ('vibrate' in navigator) navigator.vibrate(pattern);
+        }
+
+        // ── Camera ──────────────────────────────────────────────────────
+        fileUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                capturedImageData = ev.target.result;
+                preview.src = capturedImageData;
+                preview.style.display = 'block';
+                video.style.display = 'none';
+                captureBtn.classList.add('hidden');
+                retakeBtn.classList.remove('hidden');
+                processBtn.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        });
+
+        useCameraBtn.addEventListener('click', () => {
+            useCameraBtn.classList.add('active');
+            startCamera();
+        });
+
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                video.srcObject = stream;
+                video.style.display = 'block';
+            } catch (err) {
+                alert('Error accessing camera: ' + err.message);
+            }
+        }
+
+        window.addEventListener('load', startCamera);
+
+        // ── Dates ────────────────────────────────────────────────────────
+        const todayStr = new Date().toISOString().split('T')[0];
+        scanDateInput.value = todayStr;
+        updateReturnDate();
+        scanDateInput.addEventListener('change', updateReturnDate);
+
+        function updateReturnDate() {
+            const d = new Date(scanDateInput.value);
+            d.setDate(d.getDate() + 30);
+            returnDateInput.value = d.toISOString().split('T')[0];
+        }
+
+        // ── Capture ──────────────────────────────────────────────────────
+        captureBtn.addEventListener('click', () => {
+            canvas.width  = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            capturedImageData = canvas.toDataURL('image/jpeg');
+            preview.src = capturedImageData;
+            preview.style.display = 'block';
+            video.style.display = 'none';
+            captureBtn.classList.add('hidden');
+            retakeBtn.classList.remove('hidden');
+            processBtn.classList.remove('hidden');
+        });
+
+        retakeBtn.addEventListener('click', resetToCamera);
+
+        function resetToCamera() {
+            preview.style.display = 'none';
+            video.style.display   = 'block';
+            captureBtn.classList.remove('hidden');
+            retakeBtn.classList.add('hidden');
+            processBtn.classList.add('hidden');
+            saveBanner.classList.add('hidden');
+            errorBox.classList.add('hidden');
+            document.getElementById('editSection').classList.add('hidden');
+            document.getElementById('actionSection').classList.add('hidden');
+            currentTagId = null;
+        }
+
+        // ── Process → auto-save ──────────────────────────────────────────
+        processBtn.addEventListener('click', async () => {
+            loading.classList.remove('hidden');
+            errorBox.classList.add('hidden');
+            saveBanner.classList.add('hidden');
+            document.getElementById('editSection').classList.add('hidden');
+            document.getElementById('actionSection').classList.add('hidden');
+            processBtn.disabled = true;
+
+            try {
+                // 1. OCR
+                const uploadResp = await fetch('/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: capturedImageData })
+                });
+                const uploadData = await uploadResp.json();
+
+                if (!uploadData.success) {
+                    loading.classList.add('hidden');
+                    showError('Could not read tag: ' + uploadData.error);
+                    processBtn.disabled = false;
+                    return;
+                }
+
+                // 2. Parse
+                const text = uploadData.data;
+                const styleNumber = extract(text, /Style Number:\s*(.+?)(?:\n|$)/i);
+                const description = extract(text, /Description:\s*(.+?)(?:\n|$)/i);
+                const poNumber    = extract(text, /PO Number:\s*(.+?)(?:\n|$)/is);
+                const priceRaw    = extract(text, /Price:\s*\$?([\d.]+|N\/A)(?:\n|$)/i);
+                const priceVal    = (priceRaw && priceRaw !== 'N/A') ? priceRaw : '';
+
+                document.getElementById('styleNumber').value = styleNumber;
+                document.getElementById('description').value = description;
+                document.getElementById('poNumber').value    = poNumber;
+                document.getElementById('price').value       = priceVal;
+                if (priceVal) autoDetectSource(priceVal);
+                scanDateInput.value = todayStr;
+                updateReturnDate();
+
+                const source = document.getElementById('source').value;
+
+                loading.classList.add('hidden');
+                savingEl.classList.remove('hidden');
+
+                // 3. Auto-save
+                const saveResp = await fetch('/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        style_number: styleNumber,
+                        description:  description,
+                        po_number:    poNumber,
+                        scan_date:    scanDateInput.value,
+                        return_date:  returnDateInput.value,
+                        image_data:   uploadData.image_data,
+                        folder_id:    FOLDER_ID,
+                        price:        priceVal,
+                        source:       source
+                    })
+                });
+                const saveData = await saveResp.json();
+                savingEl.classList.add('hidden');
+
+                if (saveData.success) {
+                    currentTagId = saveData.id;
+
+                    // Vibrate success: two short pulses
+                    vibrate([100, 50, 100]);
+
+                    const ret = new Date(saveData.return_date + 'T00:00:00');
+                    document.getElementById('bannerReturnDate').textContent =
+                        'Return by: ' + ret.toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+                    saveBanner.classList.remove('hidden');
+                    document.getElementById('editSection').classList.remove('hidden');
+                    document.getElementById('actionSection').classList.remove('hidden');
+                } else {
+                    showError('Save failed: ' + saveData.error);
+                }
+
+            } catch (err) {
+                loading.classList.add('hidden');
+                savingEl.classList.add('hidden');
+                showError('Error: ' + err.message);
+            } finally {
+                processBtn.disabled = false;
+            }
+        });
+
+        function extract(text, regex) {
+            const m = text.match(regex);
+            return m ? m[1].trim() : '';
+        }
+
+        function showError(msg) {
+            errorBox.textContent = '❌ ' + msg;
+            errorBox.classList.remove('hidden');
+        }
+
+        // ── Source detection ─────────────────────────────────────────────
+        function autoDetectSource(price) {
+            const sel  = document.getElementById('source');
+            const info = document.getElementById('sourceInfo');
+            if (price.endsWith('.95')) {
+                sel.value = 'Inline (GAP)';
+                info.textContent = '✅ Price ends in .95 → Inline (GAP)';
+                info.style.cssText = 'display:block; background:#e3f2fd; color:#1565c0; padding:8px; border-radius:6px; margin-top:8px; font-size:13px;';
+            } else if (price.endsWith('.99')) {
+                sel.value = 'Gap Factory';
+                info.textContent = '✅ Price ends in .99 → Gap Factory';
+                info.style.cssText = 'display:block; background:#e3f2fd; color:#1565c0; padding:8px; border-radius:6px; margin-top:8px; font-size:13px;';
+            } else {
+                sel.value = '';
+                info.textContent = 'Price does not end in .95 or .99 — select source manually';
+                info.style.cssText = 'display:block; background:#fff3e0; color:#e65100; padding:8px; border-radius:6px; margin-top:8px; font-size:13px;';
+            }
+        }
+
+        document.getElementById('price').addEventListener('input', (e) => {
+            const val = e.target.value.trim();
+            if (val) autoDetectSource(val);
+            else {
+                document.getElementById('source').value = '';
+                document.getElementById('sourceInfo').style.display = 'none';
+            }
+        });
+
+        // ── Save edits ───────────────────────────────────────────────────
+        document.getElementById('saveEdits').addEventListener('click', async () => {
+            if (!currentTagId) return;
+            const btn = document.getElementById('saveEdits');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                const resp = await fetch(`/api/tag/${currentTagId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        style_number: document.getElementById('styleNumber').value.trim(),
+                        description:  document.getElementById('description').value.trim(),
+                        po_number:    document.getElementById('poNumber').value.trim(),
+                        price:        document.getElementById('price').value.trim(),
+                        source:       document.getElementById('source').value,
+                        scan_date:    scanDateInput.value,
+                        return_date:  returnDateInput.value
+                    })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    vibrate([80]);
+                    btn.textContent = '✅ Saved!';
+                    setTimeout(() => { btn.textContent = '💾 Save Changes'; btn.disabled = false; }, 1500);
+                } else {
+                    alert('Error saving: ' + data.error);
+                    btn.disabled = false;
+                    btn.textContent = '💾 Save Changes';
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+                btn.disabled = false;
+                btn.textContent = '💾 Save Changes';
+            }
+        });
+
+        document.getElementById('newTag').addEventListener('click', resetToCamera);
+
+        window.addEventListener('beforeunload', () => {
+            if (stream) stream.getTracks().forEach(t => t.stop());
+        });
+    </script>
+</body>
+</html>
