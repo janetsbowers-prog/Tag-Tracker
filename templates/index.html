@@ -245,6 +245,7 @@
                     <option value="">-- Auto-detected from price --</option>
                     <option value="Inline (GAP)">Inline (GAP) — ends in .95</option>
                     <option value="Gap Factory">Gap Factory — ends in .99</option>
+                    <option value="Inline (GAP) - no price">Inline (GAP) — gap.com on tag, no price</option>
                 </select>
             </div>
             <div class="form-group">
@@ -295,9 +296,43 @@
         let capturedImageData = null;
         let currentTagId = null;
 
-        // ── Vibrate helper ──────────────────────────────────────────────
+        // ── Vibrate + sound helpers ──────────────────────────────────────
         function vibrate(pattern) {
             if ('vibrate' in navigator) navigator.vibrate(pattern);
+        }
+
+        function playSuccessSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                [0, 0.18].forEach((startTime, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.value = i === 0 ? 880 : 1100;
+                    osc.type = 'sine';
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime + startTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + 0.15);
+                    osc.start(ctx.currentTime + startTime);
+                    osc.stop(ctx.currentTime + startTime + 0.15);
+                });
+            } catch(e) { /* audio not available */ }
+        }
+
+        function playEditSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.value = 660;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.12);
+            } catch(e) { /* audio not available */ }
         }
 
         // ── Camera ──────────────────────────────────────────────────────
@@ -443,8 +478,9 @@
                 if (saveData.success) {
                     currentTagId = saveData.id;
 
-                    // Vibrate success: two short pulses
+                    // Vibrate + sound: success
                     vibrate([100, 50, 100]);
+                    playSuccessSound();
 
                     const ret = new Date(saveData.return_date + 'T00:00:00');
                     document.getElementById('bannerReturnDate').textContent =
@@ -527,6 +563,7 @@
                 const data = await resp.json();
                 if (data.success) {
                     vibrate([80]);
+                    playEditSound();
                     btn.textContent = '✅ Saved!';
                     setTimeout(() => { btn.textContent = '💾 Save Changes'; btn.disabled = false; }, 1500);
                 } else {
