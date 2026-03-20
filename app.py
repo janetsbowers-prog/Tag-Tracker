@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, request, jsonify, render_template, Response
 import os
 import base64
 import re
@@ -333,7 +333,13 @@ def move_tag(tag_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
-
+@app.route('/api/tag/<int:tag_id>/image')
+def tag_image(tag_id):
+    """Serve the stored tag image"""
+    tag = Tag.query.get_or_404(tag_id)
+    if tag.image_data:
+        return Response(tag.image_data, mimetype='image/jpeg')
+    return '', 404
 
 if __name__ == '__main__':
     app.run(debug=True)

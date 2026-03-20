@@ -493,7 +493,7 @@
                             <div class="tag-gap-link" style="margin-bottom:4px;">
                                 {% set base_style = tag.style_number.split('-')[0] %}
                                 {% if tag.source == 'Gap Factory' %}
-                                <a href="https://www.gapfactory.com/browse/product.do?pid={{ base_style }}012&searchText={{ base_style }}#pdp-page-content" 
+                                <a href="https://www.gapfactory.com/browse/product.do?pid={{ tag.style_number }}&vid=1#pdp-page-content"
                                    target="_blank" 
                                    style="color:#6a1b9a; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
                                    🔗 View on GapFactory.com
@@ -510,12 +510,19 @@
                             <div class="tag-price" style="font-size:14px; margin-bottom:4px;">
                                 💲{{ tag.price }}
                                 {% if tag.source %}
-                                <span class="tag-source" style="display:inline-block; background:{% if tag.source == 'Inline (GAP)' %}#1565c0{% else %}#6a1b9a{% endif %}; color:white; padding:2px 8px; border-radius:10px; font-size:11px; margin-left:6px;">{{ tag.source }}</span>
+                                <span class="tag-source" style="display:inline-block; background: {% if tag.source == 'Inline (GAP)' %}#1565c0{% else %}#6a1b9a{% endif %}; color:white; padding:2px 8px; border-radius:10px; font-size:11px; margin-left:6px;">{{ tag.source }}</span>
                                 {% endif %}
                             </div>
                             {% endif %}
                             {% if tag.folder %}
                             <span class="tag-folder">📁 {{ tag.folder.name }}</span>
+                            {% endif %}
+                        </div>
+                            <div class="tag-thumbnail">
+                             {% if tag.image_data %}
+                            <img src="/api/tag/{{ tag.id }}/image"
+                               style="width:90px; height:90px; object-fit:cover; border-radius:8px; border:1px solid #ddd;"
+                               alt="Tag photo">
                             {% endif %}
                         </div>
                         <div class="card-buttons">
